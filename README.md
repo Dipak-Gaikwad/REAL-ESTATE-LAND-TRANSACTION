@@ -68,14 +68,12 @@ It is a practical solution to the real estate management problem in the real wor
 5. cd to the _client_ folder and run _npm install_.
 6. Run _npm start_.
 
-## [Project Demo Link](https://youtu.be/6VLaAa8GNDc)
-
 ## Some features of the application:-
 
 
 Landing Page                   |                   Buyer Registration
 :---------------------------------:        |      :------------------------------:
-<img src="Screenshots/select role.png"" height="200">  | <img src="Screenshots/test- buyer registration.png" height="200">
+<img src="Screenshots/select role.png" height="200">  | <img src="Screenshots/test- buyer registration.png" height="200">
 
 Buyer Dashboard                   |                   Seller Dashboard
 :---------------------------------:        |      :------------------------------:
@@ -97,7 +95,7 @@ Verify Land Transaction(by Land Inspector)    |                   Owned Lands(Bu
 :---------------------------------:        |      :------------------------------:
 <img src="Screenshots/test- approve transaction.png" height="200">     |<img src="Screenshots/result.png" height="200">
 
-View Profile(Before Verification)                
-:---------------------------------:        
-<img src="Screenshots/test- update user detail.png" height="200" width="100%">    
+View Profile(Before Verification)                 |                   Select Role
+:---------------------------------:             |      :------------------------------:
+<img src="Screenshots/test- update user detail.png" height="200" width="100%">      |<img src="Screenshots/test- selection role.png" height="200">
 
