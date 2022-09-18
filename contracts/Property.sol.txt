@@ -1,0 +1,511 @@
+// SPDX-License-Identifier: MIT
+
+pragma solidity >= 0.5.2;
+pragma experimental ABIEncoderV2;
+
+contract Property {
+
+
+    // **********   @@@@@   'Storage'  @@@@@   **********
+
+
+    //  -----   Structures  -----
+    // User details
+    struct User {
+        // address uId;
+        string loginId;
+        string password;
+        string name;
+        uint age;
+        uint aadharNumber;
+        string panNumber;
+        uint contactNumber;
+    }
+
+    // Land details
+    struct Land {
+        uint propertyPID;
+        uint physicalSurveyNumber;
+        string city;
+        string state;
+        uint area;
+        uint landPrice;
+        string ipfsHash;
+        string document;
+        address owner;
+        address [] requests;
+    }
+
+    // Property And Corresponding Users Details
+    struct propertyAndCorrespondingUsersDetailsHolder {
+        uint propertyPID;
+        uint physicalSurveyNumber;
+        string city;
+        string state;
+        uint area;
+        uint landPrice;
+        string ipfsHash;
+        string document;
+        correspondingUsersDetailsHolder [] correspondingUsersHolder;
+    }
+    struct correspondingUsersDetailsHolder {
+        string name;
+        uint contactNumber;
+    }
+
+    //  -----   Mappings  -----
+    mapping(address => User) private user_Detail;
+    mapping(uint => Land) private propertyPID_Land;
+
+    mapping(address => User) private temporaryUser_Detail;
+    mapping(uint => Land) private temporaryPropertyPID_Land;
+
+    mapping(address => uint[]) private user_propertyPID;
+    mapping(address => uint[]) private user_myRequestedProperties;
+    mapping(address => uint[]) private user_myAcceptedRequestedProperties;
+
+    mapping(address => bool) private userRegistered;
+    mapping(uint => bool) private sellPropertyExist;
+    mapping(uint => bool) private propertyPID_underTransactionProcess;
+    mapping(uint => bool) private propertyPID_paymentCompleted;
+
+    mapping(address => bool) private isAdmin;
+    mapping(address => bool) private isUserVerified;
+    mapping(uint => bool) private isPropertyVerified;
+
+
+    //  -----   Arrays  -----
+    uint[] private properties;
+    uint[] private sellingProperties;
+
+    address[] private usersToVerify;
+    uint[] private propertiesToVerify;
+
+
+    //  -----   Enum  -----
+    enum viewMyProperties { notForSeller, forSellAndRequested, forSellButNotRequested, forSellAndRequestAccepted } viewMyProperties _viewMyProperties;
+    enum viewOthersProperties { allSellingProperties, myPendingRequests, myAcceptedRequest } viewOthersProperties _viewOthersProperties;
+
+
+
+    // **********   @@@@@   'Methods which Accessed by WEB3'  @@@@@   **********
+
+
+    // View login details - 01
+    function viewLoginValidation() public view returns(string memory , string memory){
+        return ( user_Detail[msg.sender].loginId , user_Detail[msg.sender].password );
+    }
+
+    // Registering new user before verifying - 02
+    function registerTemporaryUser ( string memory _loginId, string memory _password, string memory _name, uint _age, uint _aadharNumber, string memory _panNumber, uint _contactNumber ) public {
+        require(!userRegistered [msg.sender] , "You have already registered");
+        temporaryUser_Detail [msg.sender] = User( _loginId, _password, _name, _age, _aadharNumber, _panNumber, _contactNumber );
+        userRegistered [msg.sender] = true;
+        usersToVerify.push(msg.sender);
+    }
+
+    // Update user details - 03
+    function updateUserDetails ( string memory _password, string memory _name, uint _age, uint _aadharNumber, string memory _panNumber, uint _contactNumber ) public {
+        require(userRegistered[msg.sender] , "Please register first");
+        user_Detail[msg.sender].password = _password;
+        user_Detail[msg.sender].name = _name;
+        user_Detail[msg.sender].age = _age;
+        user_Detail[msg.sender].aadharNumber = _aadharNumber;
+        user_Detail[msg.sender].panNumber = _panNumber;
+        user_Detail[msg.sender].contactNumber = _contactNumber;
+    }
+
+    // View my details - 04 --> View my property(route)
+    function viewMyDetails() public view returns(string memory, string memory, string memory, uint, uint, string memory, uint){
+        require(userRegistered[msg.sender] , "Please register first");
+        return ( user_Detail[msg.sender].loginId, user_Detail[msg.sender].password, user_Detail[msg.sender].name, user_Detail[msg.sender].age, user_Detail[msg.sender].aadharNumber, user_Detail[msg.sender].panNumber, user_Detail[msg.sender].contactNumber );
+    }
+
+    // Adding new land before verifying - 05
+    function registerTemporaryLand ( uint _propertyPID, uint _physicalSurveyNumber, string memory _city, string memory _state, uint _area, uint _landPrice, string memory _ipfsHash, string memory _document ) public {
+        require(!checkIntegerArrayElementPresent(propertiesToVerify, _propertyPID) , "Land already present");
+        require(userRegistered[msg.sender] , "Please register first");
+        require(isUserVerified[msg.sender] , "User not verified");
+        require(! isAdmin[msg.sender] , "Service denied to admin");
+        user_propertyPID[msg.sender].push(_propertyPID);
+        temporaryPropertyPID_Land [_propertyPID] = Land( _propertyPID, _physicalSurveyNumber, _city, _state, _area, _landPrice, _ipfsHash, _document, msg.sender, new address[](0) );
+        propertiesToVerify.push(_propertyPID);
+    }
+
+    // view Property For Seller - 06 --> Update Property, Sell, My Selling property, Requests, Cancle Selling, Request Accept, Request Reject    {viewMyProperty, viewMySellingProperty, viewIncomingRequestsForMySellingProperty}
+    function viewPropertyForSeller() public view returns(propertyAndCorrespondingUsersDetailsHolder[] memory , viewMyProperties[] memory){
+        uint [] memory _propertyPIDList = user_propertyPID[msg.sender];
+        propertyAndCorrespondingUsersDetailsHolder [] memory resultingArray = new propertyAndCorrespondingUsersDetailsHolder[](_propertyPIDList.length);
+        viewMyProperties[] memory _viewMyProperties = new viewMyProperties[](_propertyPIDList.length);
+        for (uint i=0; i < _propertyPIDList.length; i++){
+            address [] memory _users = propertyPID_Land[_propertyPIDList[i]].requests;
+            propertyAndCorrespondingUsersDetailsHolder memory result = propertyAndCorrespondingUsersDetails(_propertyPIDList[i] , _users); 
+            resultingArray[i] = result;
+            if (!sellPropertyExist[_propertyPIDList[i]]){
+                _viewMyProperties[i] = viewMyProperties.notForSeller;
+            }else if(sellPropertyExist[_propertyPIDList[i]]){
+                if (propertyPID_underTransactionProcess[_propertyPIDList[i]]){
+                    _viewMyProperties[i] = viewMyProperties.forSellAndRequestAccepted;
+                }else if(_users.length == 0){
+                    _viewMyProperties[i] = viewMyProperties.forSellButNotRequested;
+                }else if(_users.length != 0){
+                    _viewMyProperties[i] = viewMyProperties.forSellAndRequested;
+                }
+            }
+        }
+        return (resultingArray , _viewMyProperties) ;
+    }
+
+    // Update property detail - 07
+    function updatePropertyPrize(uint _propertyPID, uint _prize) public{
+        require(propertyPID_Land[_propertyPID].owner == msg.sender , "You are no longer owner of this property");
+        require(!sellPropertyExist[_propertyPID] , "This property is already existed in Buying Queue, You can not update it");
+        propertyPID_Land[_propertyPID].landPrice = _prize;
+    }
+
+    // Sell Property - 08
+    function sellProperty(uint _propertyPID) payable public {
+        uint _balance = propertyPID_Land[_propertyPID].landPrice *5*(10**10) ;    // 2 Lakh = 1 Ether = 10**18 Wei (1% of total prize as a token)
+        require(propertyPID_Land[_propertyPID].owner == msg.sender , "You are no longer owner of this property");
+        require(msg.value == _balance, "You have entered wrong amount");
+        require(userRegistered[msg.sender] , "Please register first");
+        require(isPropertyVerified[_propertyPID] , "Un-verified Property");
+        require(isUserVerified[msg.sender] , "User not verified");
+        require(! isAdmin[msg.sender] , "Service denied to admin");
+        require(!sellPropertyExist[_propertyPID] , "This property is already existed in Buying Queue");
+        sellingProperties.push(_propertyPID);
+        sellPropertyExist[_propertyPID] = true;
+    }
+
+    // Cancle property selling before accepting requests - 09
+    function canclePropertySelling(uint _propertyPID) public payable {
+        require(userRegistered[msg.sender] , "Please register first");
+        require(isUserVerified[msg.sender] , "User not verified");
+        require(isPropertyVerified[_propertyPID] , "Un-verified Property");
+        require(! isAdmin[msg.sender] , "Service denied to admin");
+        require(propertyPID_Land[_propertyPID].owner == msg.sender , "You are no longer owner of this property");
+        uint _balance = propertyPID_Land[_propertyPID].landPrice *5*(10**10) ;    // 2 Lakh = 1 Ether = 10**18 Wei (1% of total prize as a token)
+        address payable _seller = payable(propertyPID_Land[_propertyPID].owner);
+        (bool _sended,) = _seller.call{value: _balance}("");
+        require(_sended, "Transaction failed");
+        address[] memory _requestedBuyer = propertyPID_Land[_propertyPID].requests;
+        propertyPID_Land[_propertyPID].requests = new address[](0);
+        for (uint i=0; i < _requestedBuyer.length; i++){
+            user_myRequestedProperties[_requestedBuyer[i]] = removeIntegerArrayElement(user_myRequestedProperties[_requestedBuyer[i]], _propertyPID);
+            user_myRequestedProperties[_requestedBuyer[i]].pop();
+        }
+        sellingProperties = removeIntegerArrayElement(sellingProperties, _propertyPID);
+        sellingProperties.pop();
+        sellPropertyExist[_propertyPID] = false;
+    }
+
+    // Request accepted - 10
+    function requestAccepted(address _buyer, uint _propertyPID) public{
+        require(userRegistered[msg.sender] , "Please register first");
+        require(isUserVerified[msg.sender] , "User not verified");
+        require(isPropertyVerified[_propertyPID] , "Un-verified Property");
+        require(! isAdmin[msg.sender] , "Service denied to admin");
+        require(!propertyPID_underTransactionProcess[_propertyPID] , "You already accepted a request, can not accept more than 1 request for a property");
+        require(propertyPID_Land[_propertyPID].owner == msg.sender , "You are no longer owner of this property");
+        user_myAcceptedRequestedProperties[_buyer].push(_propertyPID);
+        propertyPID_underTransactionProcess[_propertyPID] = true;
+    }
+
+    // Request rejected - 11
+    function requestRejected(address _buyer, uint _propertyPID) public{
+        require(userRegistered[msg.sender] , "Please register first");
+        require(isUserVerified[msg.sender] , "User not verified");
+        require(isPropertyVerified[_propertyPID] , "Un-verified Property");
+        require(! isAdmin[msg.sender] , "Service denied to admin");
+        require(!checkIntegerArrayElementPresent(user_myAcceptedRequestedProperties[_buyer], _propertyPID) , "You already signed smart contract for this property");
+        user_myRequestedProperties[_buyer] = removeIntegerArrayElement(user_myRequestedProperties[_buyer], _propertyPID);
+        user_myRequestedProperties[_buyer].pop();
+        propertyPID_Land[_propertyPID].requests = removeAddressArrayElement(propertyPID_Land[_propertyPID].requests, _buyer);
+        propertyPID_Land[_propertyPID].requests.pop();
+    }
+
+     // view Property For Buyer - 12 --> (property detail, seller detail) Request  {viewAllSellingProperty, viewMyPendingRequests, viewMyAcceptedRequests}
+    function viewPropertyForBuyer() public view returns(propertyAndCorrespondingUsersDetailsHolder[] memory , viewOthersProperties[] memory){
+        propertyAndCorrespondingUsersDetailsHolder [] memory resultingArray = new propertyAndCorrespondingUsersDetailsHolder[](sellingProperties.length);
+        viewOthersProperties[] memory _viewOthersProperties = new viewOthersProperties[](sellingProperties.length);
+        for (uint i=0; i < sellingProperties.length; i++){
+            address [] memory _users = new address[](1);
+            _users[0] = propertyPID_Land[sellingProperties[i]].owner;
+            propertyAndCorrespondingUsersDetailsHolder memory result = propertyAndCorrespondingUsersDetails(sellingProperties[i] , _users); 
+            resultingArray[i] = result;
+            if ( checkIntegerArrayElementPresent(user_myAcceptedRequestedProperties[msg.sender], sellingProperties[i]) ){
+                _viewOthersProperties[i] = viewOthersProperties.myAcceptedRequest;
+            }else if( checkAddressArrayElementPresent(propertyPID_Land[sellingProperties[i]].requests, msg.sender) ){
+                _viewOthersProperties[i] = viewOthersProperties.myPendingRequests;
+            }else if( !checkAddressArrayElementPresent(propertyPID_Land[sellingProperties[i]].requests, msg.sender) ){
+                _viewOthersProperties[i] = viewOthersProperties.allSellingProperties;
+            }
+        }
+        return (resultingArray , _viewOthersProperties) ;
+    }
+
+    // Request Property - 13
+    function requestProperty(uint _propertyPID) public {
+        require(userRegistered[msg.sender] , "Please register first");
+        require(isUserVerified[msg.sender] , "User not verified");
+        require(isPropertyVerified[_propertyPID] , "Un-verified Property");
+        require(! isAdmin[msg.sender] , "Service denied to admin");
+        require(propertyPID_Land [_propertyPID].owner != msg.sender , "Owner of the property can not request");
+        require(checkIntegerArrayElementPresent(sellingProperties, _propertyPID) , "Property not available for selling");
+        require(!checkIntegerArrayElementPresent(user_myRequestedProperties[msg.sender] , _propertyPID), "You have already Requested for this property");
+        user_myRequestedProperties[msg.sender].push(_propertyPID);
+        propertyPID_Land [_propertyPID].requests.push(msg.sender);
+    }
+
+    // Buy property - 14
+    function buyProperty(uint _propertyPID) public payable {
+        uint _balance = propertyPID_Land[_propertyPID].landPrice  *99*5*(10**10) ;    // 2 Lakh = 1 Ether = 10**18 Wei (100% - (1% of total prize as a token) as a whole transaction )
+        require(userRegistered[msg.sender] , "Please register first");
+        require(isUserVerified[msg.sender] , "User not verified");
+        require(isPropertyVerified[_propertyPID] , "Un-verified Property");
+        require(! isAdmin[msg.sender] , "Service denied to admin");
+        require(checkIntegerArrayElementPresent(user_myAcceptedRequestedProperties[msg.sender], _propertyPID) , "Can not make payment before getting approval from seller");
+        address payable _seller = payable(propertyPID_Land[_propertyPID].owner);
+        (bool _sended,) = _seller.call{value: _balance}("");
+        require(_sended, "Transaction failed");
+        propertyPID_paymentCompleted[_propertyPID] = true;
+        transferOwnership(_seller, msg.sender, _propertyPID);
+    }
+
+
+
+    // **********   @@@@@   'Neccessory Methods which NOT Accessed by WEB3'  @@@@@   **********
+
+
+    // Transfer ownership
+    function transferOwnership(address _seller, address _buyer, uint _propertyPID) private {
+        require(propertyPID_paymentCompleted[_propertyPID] , "Property not available for buying");
+        propertyPID_Land[_propertyPID].owner = _buyer;
+        address[] memory _requestedBuyer = propertyPID_Land[_propertyPID].requests;
+        propertyPID_Land[_propertyPID].requests = new address[](0);
+        user_propertyPID[_buyer].push(_propertyPID);
+        user_propertyPID[_seller] = removeIntegerArrayElement(user_propertyPID[_seller], _propertyPID);
+        user_propertyPID[_seller].pop();
+        for (uint i=0; i < _requestedBuyer.length; i++){
+            user_myRequestedProperties[_requestedBuyer[i]] = removeIntegerArrayElement(user_myRequestedProperties[_requestedBuyer[i]], _propertyPID);
+            user_myRequestedProperties[_requestedBuyer[i]].pop();
+        }
+        sellingProperties = removeIntegerArrayElement(sellingProperties, _propertyPID);
+        sellingProperties.pop();
+        user_myAcceptedRequestedProperties[_buyer] = removeIntegerArrayElement(user_myAcceptedRequestedProperties[_buyer], _propertyPID);
+        user_myAcceptedRequestedProperties[_buyer].pop();
+        propertyPID_underTransactionProcess[_propertyPID] = false;
+        propertyPID_paymentCompleted[_propertyPID] = false;
+        sellPropertyExist[_propertyPID] = false;
+    }
+
+    // Property and corresponding Users Details
+    function propertyAndCorrespondingUsersDetails ( uint _propertyPID , address [] memory _users) private view returns(propertyAndCorrespondingUsersDetailsHolder memory){
+        correspondingUsersDetailsHolder [] memory temp1 = new correspondingUsersDetailsHolder[](_users.length);
+        for (uint i=0; i < _users.length; i++){
+            temp1[i] = correspondingUsersDetailsHolder({name: user_Detail[_users[i]].name, contactNumber: user_Detail[_users[i]].contactNumber});
+        }
+        return propertyAndCorrespondingUsersDetailsHolder({propertyPID: propertyPID_Land [_propertyPID].propertyPID,physicalSurveyNumber: propertyPID_Land [_propertyPID].physicalSurveyNumber, city: propertyPID_Land [_propertyPID].city, state: propertyPID_Land [_propertyPID].state, area: propertyPID_Land [_propertyPID].area, landPrice: propertyPID_Land [_propertyPID].landPrice, ipfsHash: propertyPID_Land [_propertyPID].ipfsHash, document: propertyPID_Land [_propertyPID].document, correspondingUsersHolder: temp1}) ;
+    }
+
+    // Check integer array elements present
+    function checkIntegerArrayElementPresent(uint[] memory _array, uint _element) private pure returns(bool){
+        for (uint i=0; i < _array.length; i++){
+            if (_array[i] == _element){
+                return true;              
+            }
+        }
+        return false;
+    }
+
+    // Check address array elements present
+    function checkAddressArrayElementPresent(address[] memory _array, address _element) private pure returns(bool){
+        for (uint i=0; i < _array.length; i++){
+            if (_array[i] == _element){
+                return true;              
+            }
+        }
+        return false;
+    }
+
+    // Remove integer array elements
+    function removeIntegerArrayElement(uint[] memory _array, uint _element) private pure returns(uint[] memory){
+        bool _elementFound = false;
+        for (uint i=0; i < ( _array.length - 1 ); i++){
+            if (_array[i] == _element){
+                _elementFound = true;
+            }
+            if (_elementFound == true){
+                _array[i] = _array[i+1];
+            }
+        }
+        return _array;
+    }
+
+    // Remove address array elements
+    function removeAddressArrayElement(address[] memory _array, address _element) private pure returns(address[] memory){
+        bool _elementFound = false;
+        for (uint i=0; i < ( _array.length - 1 ); i++){
+            if (_array[i] == _element){
+                _elementFound = true;
+            }
+            if (_elementFound == true){
+                _array[i] = _array[i+1];
+            }
+        }
+        return _array;
+    }
+
+
+
+    // **********   @@@@@   'Admin Section'  @@@@@   **********
+
+    // Default Admin
+    constructor(){
+        address _user = msg.sender;
+        user_Detail [_user] = User( 'Admin', 'Admin', 'Tehsil Manager', 28, 123456789012, 'abc123xyz', 1234567890 );
+        userRegistered [msg.sender] = true;
+        isAdmin[_user] = true;
+        isUserVerified[_user] = true;
+    }
+
+    // View is user be admin
+    function viewIsAdmin() public view returns(bool){
+        return isAdmin[msg.sender];
+    }
+
+    // View is user be verified
+    function viewIsUserVerified() public view returns(bool){
+        return isUserVerified[msg.sender];
+    }
+
+    // View is property be verified
+    function viewIsPropertyVerified(uint _propertyPID) public view returns(bool){
+        return isPropertyVerified[_propertyPID];
+    }
+
+    // View Requested Users details to verify
+    function viewRequestedUsersDetailsToVerify() public view returns(User [] memory){
+        User [] memory _requestedUsersDetail = new User[](usersToVerify.length);
+        for (uint i=0; i < usersToVerify.length; i++){
+            _requestedUsersDetail[i] = temporaryUser_Detail [ usersToVerify[i] ];
+        }
+        return _requestedUsersDetail;
+    }
+
+    // View Requested Property details to verify
+    function viewRequestedPropertyDetailsToVerify() public view returns(Land [] memory){
+        Land [] memory _requestedPropertyDetail = new Land[](propertiesToVerify.length);
+        for (uint i=0; i < propertiesToVerify.length; i++){
+            _requestedPropertyDetail[i] = temporaryPropertyPID_Land [ propertiesToVerify[i] ];
+        }
+        return _requestedPropertyDetail;
+    }
+
+
+    // User detail approved
+    function userDetailApproved(address _user) public{
+        require(! isUserVerified[_user] , "Already approved this user");
+        user_Detail [_user] = temporaryUser_Detail [_user];
+        isUserVerified[_user] = true;
+        removeAddressArrayElement(usersToVerify, _user);
+    }
+
+    // User detail rejected
+    function userDetailRejected(address _user) public{
+        isUserVerified[_user] = false;
+        removeAddressArrayElement(usersToVerify, _user);
+    }
+
+    // Property detail approved
+    function propertyDetailApproved(uint _propertyPID) public{
+        require(! isPropertyVerified[_propertyPID] , "Already approved this property");
+        propertyPID_Land [_propertyPID] = temporaryPropertyPID_Land [_propertyPID];
+        isPropertyVerified[_propertyPID] = true;
+        removeIntegerArrayElement(propertiesToVerify, _propertyPID);
+    }
+
+    // Property detail rejected
+    function propertyDetailRejected(uint _propertyPID) public{
+        isPropertyVerified[_propertyPID] = true;
+        removeIntegerArrayElement(propertiesToVerify, _propertyPID);
+    }
+
+    // Add new admin
+    function registerAdmin ( address _user, string memory _loginId, string memory _password, string memory _name, uint _age, uint _aadharNumber, string memory _panNumber, uint _contactNumber ) public {
+        require(!userRegistered [msg.sender] , "You have already registered");
+        require(isAdmin[msg.sender], "Permission denied");
+        user_Detail [_user] = User( _loginId, _password, _name, _age, _aadharNumber, _panNumber, _contactNumber );
+        userRegistered [_user] = true;
+        isAdmin[_user] = true;
+        isUserVerified[_user] = true;
+    }
+}
+
+
+
+    // **********   @@@@@   'web3 in react'  @@@@@   **********
+
+
+// state = { storageValue: 0, web3: null, accounts: null, contract: null };
+
+//   componentDidMount = async () => {
+//     try {
+//       // Get network provider and web3 instance.
+//       const web3 = await getWeb3();
+
+//       // Use web3 to get the user's accounts.
+//       const accounts = await web3.eth.getAccounts();
+
+//       // Get the contract instance.
+//       const networkId = await web3.eth.net.getId();
+//       const deployedNetwork = testContract.networks[networkId];
+//       const instance = new web3.eth.Contract(
+//         testContract.abi,
+//         deployedNetwork && deployedNetwork.address,
+//       );
+
+//       // Set web3, accounts, and contract to the state, and then proceed with an
+//       // example of interacting with the contract's methods.
+//       this.setState({ web3, accounts, contract: instance }, this.runExample);
+//     } catch (error) {
+//       // Catch any errors for any of the above operations.
+//       alert(
+//         `Failed to load web3, accounts, or contract. Check console for details.`,
+//       );
+//       console.error(error);
+//     }
+//   };
+
+
+
+
+//   // @@@@@@@@@@@ ************** @@@@@@@@@@@@@@@@
+
+//   runExample = async () => {
+//     const { accounts, contract } = this.state;
+
+//     // msg.sender
+//     console.log(accounts[0]);    
+
+//     // Call View functions
+//     const response = await contract.methods.getProperties().call();
+//     console.log(response);
+
+//     // Call transaction function
+//     await contract.methods.addProperties(114).send({ from: accounts[0] });
+
+        // // call payble functions
+        // // value ---> uint _balance = propertyPID_Land[_propertyPID].landPrice *5*(10**10) ;    or  uint _balance = propertyPID_Land[_propertyPID].landPrice *99*5*(10**10) ;
+        // const fundit = await  mycontract.methods.fundIt().send({
+        //                                             from: '0xbf443ed3b73159d5bf427568359c7de4103413c3', // msg.sender or accounts[0]
+        //                                             value: 3 
+        //                                            })
+        //                                     .then(res => 
+        //                                           console.log('Success', res))
+        //                                     .catch(err => console.log(err));
+
+
+//   };
+
+//   // @@@@@@@@@@@ ************** @@@@@@@@@@@@@@@@
