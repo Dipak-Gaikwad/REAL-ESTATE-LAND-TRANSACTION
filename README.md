@@ -1,4 +1,4 @@
-# Land Registration System with Blockchain  
+# REAL ESTATE LAND TRANSACTION  
 
 <a href="https://img.shields.io/static/v1?label=LandRegistration&message=TruffleSuite&color=orange"><img src="https://img.shields.io/static/v1?label=LandRegistration&message=TruffleSuite&color=orange"></a>
 <img src="https://img.shields.io/badge/Ethereum-20232A?style=for-the-badge&logo=ethereum&logoColor=white">
@@ -6,33 +6,41 @@
 <a href="LICENSE"><img src="https://img.shields.io/static/v1?label=license&message=MIT&color=green"></a>
 
 ## Team Members:
-
-	Batch: T1
-	111803157  Mrunal Kotkar
-	111803168  Vrinda Ahuja
-    141903009  Divya Kharode
 	
+	Dipak Gaikwad
+	Gayatri Khedkar
+	Shantanu Chavan
+	Akshay Hambir
 
 ## Project Description:
 
-This is an application of Land Registration System. 
-Land registry in India as well as in many parts of the world is a very slow and inconvenient process. Current land registration & verification systems include an increasing number of fraud cases and loss of paperwork and court cases due to thousands of land records to maintain.  
-The intuition behind building this was to make the process of land registration resilient and decreases the cases of fraud in the process. Using the system, validation of the lands is also possible as immutable transactions are being stored in the public ledger.  
-So the Land Registration system using blockchain is a distributed system that will store all the transactions made during the process of land buying. This will also be helpful for buyers, sellers and government registrars to transfer the land ownership from seller to new buyer as well as it will accelerate the process of registration.  
+This is an application of 'REAL ESTATE LAND TRANSACTION'. 
+Real Estate Management in India as well as in many parts of the world is a very inefficient and insecure process. 
+Developing a secure system that not only accelerates the process of land registration but also makes it efficient and secure will be 
+effective. Blockchain technology is one of the latest and secured technologies on the horizon and has evolved over the last 9-11 
+years. There is tremendous potential for usage of Blockchain technology in the land industry. This paper presents a blockchain- 
+powered real estate management system that will impart transparency, efficiency, and security in Real Estate Management. The 
+decentralized data storage application and its interactions with Ethereum Virtual Machine (EVM) are presented to point out the 
+event of a sensible contract which will be used for blockchain smart contracts in real estate management. Further, a detailed 
+design and interaction mechanism are highlighted for the estate owners and users as parties to a sensible contract. It will store 
+all the transactions on a distributed blockchain which will be very secure and will not be prone to hacking. A list of functions for 
+initiating, creating, modifying, or terminating a sensible contract is presented and this will help the user enjoy a more immersive, 
+user-friendly, and visualized contracting process, whereas the owners and real estate agents can enjoy more business and sales. 
+It is a practical solution to the real estate management problem in the real world.  
 
 
 ## Tech Stack Used:
 
-	Frontend:
-	* Javascript
-    * React Framework
-	* CSS
-    * Metamask Chrome Extension
+	* Frontend:
+		* Javascript
+	* React Framework
+		* CSS
+	* Metamask Chrome Extension
 
-	Backend:
-	* Ethereum Blockchain (Truffle Suite)
-    * Solidity
-    * Ganache
+	* Backend:
+		* Ethereum Blockchain (Truffle Suite)
+    		* Solidity
+    		* Ganache
 
 
 ## Application features:  
@@ -67,34 +75,29 @@ So the Land Registration system using blockchain is a distributed system that wi
 
 Landing Page                   |                   Buyer Registration
 :---------------------------------:        |      :------------------------------:
-<img src="Screenshots/landing.png" height="200">  | <img src="Screenshots/registration.png" height="200">
+<img src="Screenshots/select role.png"" height="200">  | <img src="Screenshots/test- buyer registration.png" height="200">
 
 Buyer Dashboard                   |                   Seller Dashboard
 :---------------------------------:        |      :------------------------------:
-<img src="Screenshots/buyer dashboard.png" height="200">     |<img src="Screenshots/seller dashboard2.png" height="200">
+<img src="Screenshots/test- request land.png" height="200">     |<img src="Screenshots/seller dashboard2.png" height="200">
 
 Add Land(by Seller)            |                   View all Lands Details
 :---------------------------------:        |      :------------------------------:
-<img src="Screenshots/add land.png" height="200">     |<img src="Screenshots/Land Gallery.png" height="200">
+<img src="Screenshots/test- add property.png" height="200">     |<img src="Screenshots/test - data fetching (property gallery).png" height="200">
 
 Help & FAQ Page                |                   Verify Buyer(by Land Inspector)
 :---------------------------------:        |      :------------------------------:
-<img src="Screenshots/help.png" height="200" >     |<img src="Screenshots/verify buyer.png" height="200"  >
+<img src="Screenshots/help.png" height="200" >     |<img src="Screenshots/test- approve request.png" height="200"  >
 
 Approve Land Request(by Seller)               |             Payment by Buyer 
 :---------------------------------:        |      :------------------------------:
-<img src="Screenshots/approve request.png" height="200">     |<img src="Screenshots/payment.png" height="200">
+<img src="Screenshots/test- approve transaction.png" height="200">     |<img src="Screenshots/test- payment.png" height="200">
 
 Verify Land Transaction(by Land Inspector)    |                   Owned Lands(Buyer)
 :---------------------------------:        |      :------------------------------:
-<img src="Screenshots/verify transaction.png" height="200">     |<img src="Screenshots/owned lands.png" height="200">
+<img src="Screenshots/test- approve transaction.png" height="200">     |<img src="Screenshots/result.png" height="200">
 
-View Profile(Before Verification)                  |             Edit Profile(After Verification)
-:---------------------------------:        |      :------------------------------:
-<img src="Screenshots/profile.png" height="200" width="100%">     |<img src="Screenshots/edit profile.png" height="200" width="80%">
-
-### Make sure to star the repository if you find it helpful!
-![visitors](https://visitor-badge.laobi.icu/badge?page_id=vrii14.Land-Registration-with-Blockchain)
-<a href="https://github.com/vrii14/Land-Registration-with-Blockchain/stargazers"><img src="https://img.shields.io/github/stars/vrii14/Land-Registration-with-Blockchain?color=yellow" alt="Stars Badge"/></a>
-<a href="https://github.com/vrii14/Land-Registration-with-Blockchain/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/vrii14/Land-Registration-with-Blockchain?color=2b9348"></a>
+View Profile(Before Verification)                
+:---------------------------------:        
+<img src="Screenshots/test- update user detail.png" height="200" width="100%">    
 
