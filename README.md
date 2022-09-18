@@ -75,9 +75,9 @@ Landing Page                   |                   Buyer Registration
 :---------------------------------:        |      :------------------------------:
 <img src="Screenshots/select role.png" height="200">  | <img src="Screenshots/test- buyer registration.png" height="200">
 
-Buyer Dashboard                   |                   Seller Dashboard
+Buyer Dashboard                   |                   Seller Registration
 :---------------------------------:        |      :------------------------------:
-<img src="Screenshots/test- request land.png" height="200">     |<img src="Screenshots/seller dashboard2.png" height="200">
+<img src="Screenshots/test- request land.png" height="200">     |<img src="Screenshots/test-registration confirmation.png" height="200">
 
 Add Land(by Seller)            |                   View all Lands Details
 :---------------------------------:        |      :------------------------------:
